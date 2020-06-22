@@ -30,9 +30,8 @@ interface IBGECityResponse {
 const CreatePoint = () => {
     const [items, setItems] = useState<Item[]>([]);
     const [ufs, setUfs] = useState<string[]>([]);
-    const [selectedItems, setSelectedItems] = useState<number[]>([]);
     const [cities, setCities] = useState<string[]>([]);
-
+    const [selectedItems, setSelectedItems] = useState<number[]>([]);
     const [initialPosition, setInitialPosition] = useState<[number, number]>([0,0]);
 
     const [formData, setFormData] = useState({
