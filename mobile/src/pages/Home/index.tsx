@@ -1,39 +1,84 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, ChangeEvent, FormEvent } from 'react';
 import { View, ImageBackground, Text, Image, StyleSheet, TextInput, KeyboardAvoidingView, Platform } from 'react-native';
 import { Feather as Icon} from '@expo/vector-icons';
 import { RectButton } from 'react-native-gesture-handler';
 import { useNavigation } from '@react-navigation/native';
+import RNPickerSelect from 'react-native-picker-select';
+import axios from 'axios';
+
+interface IBGEUFResponse {
+  sigla: string;
+}
+
+interface IBGECityResponse {
+  nome: string;
+}
 
 const Home = () => {
-    const [uf, setUf] = useState('');
-    const [city, setCity] = useState('');
-    const navigation = useNavigation();
+  // const [uf, setUf] = useState('');
+  // const [city, setCity] = useState('');
 
-    function handleNavigateToPoints() {
-        navigation.navigate('Points', {
-          uf,
-          city,
-        })
+  const [ufs, setUfs] = useState<string[]>([]);
+  const [cities, setCities] = useState<string[]>([]);
+  const [selectedUf, setSelectedUF] = useState('0');
+  const [selectedCity, setSelectedCity] = useState('0');
+
+  const navigation = useNavigation();
+
+useEffect(() => {
+  axios.get<IBGEUFResponse[]>('https://servicodados.ibge.gov.br/api/v1/localidades/estados').then(response => {
+      const ufInitials = response.data.map(uf => uf.sigla);
+      
+      setUfs(ufInitials);
+  });
+}, []);
+
+useEffect(() => {
+    //carregar as cidades sempre que a uf mudar
+    if (selectedUf === '0') {
+        return;
     }
-    return (
-        <KeyboardAvoidingView 
-          style={{ flex: 1}} 
-          behavior={Platform.OS === 'ios' ? 'padding' : undefined }
-        >
-          <ImageBackground 
-              source={require('../../assets/home-background.png')} 
-              style={styles.container}
-              imageStyle={{ width: 274, height: 368}}      
-          >
-              <View style={styles.main}>
-                  <Image source={require('../../assets/logo.png')} />
-                  <View>
-                    <Text style={styles.title} >Seu marketplace de coleta de resíduos</Text>
-                    <Text style={styles.description} >Ajudamos pessoas a encontrarem potos de coleta eficiente</Text>
-                  </View>
-              </View>
 
-              <View style={styles.footer}>
+    axios.get<IBGECityResponse[]>(`https://servicodados.ibge.gov.br/api/v1/localidades/estados/${selectedUf}/municipios`)
+        .then(response => {
+            const cityNames = response.data.map(city => city.nome);
+
+            setCities(cityNames);
+    });
+}, [selectedUf]);
+
+function handleSelectUf(uf: string) {
+    setSelectedUF(uf);
+}
+
+function handleSelectCity(city: string) {
+    setSelectedCity(city);
+}
+
+function handleNavigateToPoints() {
+  navigation.navigate('Points', { uf: selectedUf, city: selectedCity });
+}
+  
+  return (
+      <KeyboardAvoidingView 
+        style={{ flex: 1}} 
+        behavior={Platform.OS === 'ios' ? 'padding' : undefined }
+      >
+        <ImageBackground 
+            source={require('../../assets/home-background.png')} 
+            style={styles.container}
+            imageStyle={{ width: 274, height: 368}}      
+        >
+            <View style={styles.main}>
+                <Image source={require('../../assets/logo.png')} />
+                <View>
+                  <Text style={styles.title} >Seu marketplace de coleta de resíduos</Text>
+                  <Text style={styles.description} >Ajudamos pessoas a encontrarem potos de coleta eficiente</Text>
+                </View>
+            </View>
+
+            <View style={styles.footer}>
+              {/*
                 <TextInput
                   style={styles.input}
                   placeholder="Digite a UF"
@@ -50,21 +95,34 @@ const Home = () => {
                   autoCorrect={false}
                   onChangeText={setCity}
                 />
+              */}
+              <RNPickerSelect 
+                placeholder={{ label: 'Selecione um estado' }}
+                onValueChange={(value) => handleSelectUf(value)}
+                items={ufs.map((uf) => ({ label: uf, value: uf }))}
+                style={pickerSelectStyles}
+              />
+              <RNPickerSelect 
+                placeholder={{ label: 'Selecione uma cidade' }}
+                onValueChange={(value) => handleSelectCity(value)}
+                items={cities.map((city) => ({ label: city, value: city }))}
+                style={pickerSelectStyles}
+              />
 
-                  <RectButton style={styles.button} onPress={handleNavigateToPoints}>
-                      <View style={styles.buttonIcon}>
-                          <Text>
-                              <Icon name="arrow-right" color='#FFF' size={24} />
-                          </Text>
-                      </View>
-                      <Text style={styles.buttonText}>
-                          Entrar
-                      </Text>
-                  </RectButton>
-              </View>
-          </ImageBackground>
-        </KeyboardAvoidingView>
-    )
+                <RectButton style={styles.button} onPress={handleNavigateToPoints}>
+                    <View style={styles.buttonIcon}>
+                        <Text>
+                            <Icon name="arrow-right" color='#FFF' size={24} />
+                        </Text>
+                    </View>
+                    <Text style={styles.buttonText}>
+                        Entrar
+                    </Text>
+                </RectButton>
+            </View>
+        </ImageBackground>
+      </KeyboardAvoidingView>
+  )
 };
 
 const styles = StyleSheet.create({
@@ -134,6 +192,25 @@ const styles = StyleSheet.create({
       fontFamily: 'Roboto_500Medium',
       fontSize: 16,
     }
+  });
+
+  const pickerSelectStyles = StyleSheet.create({
+    inputIOS: {
+      height: 60,
+      backgroundColor: '#FFF',
+      borderRadius: 10,
+      marginBottom: 8,
+      paddingHorizontal: 24,
+      fontSize: 16,
+    },
+    inputAndroid: {
+      height: 60,
+      backgroundColor: '#FFF',
+      borderRadius: 10,
+      marginBottom: 8,
+      paddingHorizontal: 24,
+      fontSize: 16,
+    },
   });
 
 export default Home;
